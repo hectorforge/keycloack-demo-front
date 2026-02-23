@@ -1,0 +1,29 @@
+<div class="container mt-4">
+
+  <!--
+  @if (userInfo$ | async; as user) {
+    <section class="user-info">
+      <h2>👤 Usuario autenticado</h2>
+      <p><strong>Username:</strong> {{ user.username }}</p>
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Roles:</strong> {{ user.roles?.join(', ') }}</p>
+    </section>
+  } @else {
+    <p>Cargando usuario...</p>
+  }
+-->
+  <hr />
+
+  <section class="products">
+    <h2>Productos</h2>
+
+    @if (dummy$ | async; as dummy) {
+
+      {{dummy}}
+
+    } @else {
+      <p>Cargando dummy...</p>
+    }
+
+  </section>
+</div>
