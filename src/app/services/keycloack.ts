@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import Keycloak from 'keycloak-js';
 import { UserProfile } from './user-profile';
-import {ClienteService} from './cliente-service';
+import { ClienteService } from './cliente-service';
+import { ClienteResponse } from '../models/ClienteDto';
+import { OperationResult } from '../models/ClienteDto';
 
 @Injectable({
   providedIn: 'root',
@@ -9,7 +11,8 @@ import {ClienteService} from './cliente-service';
 export class KeycloakService {
 
   private _keycloak: Keycloak | undefined;
-  private _profile : UserProfile | undefined;
+  private _profile: UserProfile | undefined;
+  private _cliente?: ClienteResponse; // cliente local sincronizado
 
   get keycloak(): Keycloak {
     if (!this._keycloak) {
@@ -26,31 +29,52 @@ export class KeycloakService {
     return this._profile;
   }
 
-  constructor() {}
+  get cliente(): ClienteResponse | undefined {
+    return this._cliente;
+  }
+
+  constructor(private clienteService: ClienteService) {}
 
   async init() {
     console.log('Iniciando Keycloak');
     const authenticated = await this.keycloak?.init({
       onLoad: 'login-required',
-      //      checkLoginIframe: false
+      silentCheckSsoRedirectUri: window.location.origin + '/assets/silent-check-sso.html'
     });
 
-
-    if(authenticated){
-      console.log('User authenticated...')
+    if (authenticated) {
+      console.log('User authenticated...');
       this._profile = (await this.keycloak?.loadUserProfile()) as UserProfile;
       this._profile.token = this.keycloak?.token;
+      console.log(this._keycloak?.token)
+      this.syncCliente();
     }
-    console.log(this._profile?.token);
   }
 
-  login(){
+  async syncCliente() {
+    if (!this._profile?.token) return;
+
+    this.clienteService.syncUsuario(this._profile.token)
+      .subscribe({
+        next: (result: OperationResult<ClienteResponse>) => {
+          if (result.isSuccess && result.data) {
+            this._cliente = result.data;
+            console.log('Usuario sincronizado en BD interna:', this._cliente);
+          } else {
+            console.error('Error sincronizando usuario:', result.errorMessage);
+          }
+        },
+        error: err => {
+          console.error('Error HTTP sincronizando usuario:', err);
+        }
+      });
+  }
+
+  login() {
     return this.keycloak?.login();
   }
 
-  logout(){
+  logout() {
     return this.keycloak?.logout();
-    //Esto usamos si queremos cambiar de contraseña actualizar nuestros datos, etc.
-    //this.keycloak?.accountManagement();
   }
 }
